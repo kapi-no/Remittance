@@ -1,0 +1,25 @@
+{
+  "name": "remittance",
+  "version": "1.0.0",
+  "description": "Ethereum smart contract project created with Truffle framework",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kapi-no/Remittance.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kapi-no/Remittance/issues"
+  },
+  "homepage": "https://github.com/kapi-no/Remittance#readme",
+  "dependencies": {
+    "openzeppelin-solidity": "^2.2.0"
+  }
+}
