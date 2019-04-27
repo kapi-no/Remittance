@@ -61,7 +61,7 @@ contract('Remittance', (accounts) => {
 
         const carolPreBalance = await web3.eth.getBalance(carolAddress);
 
-        await remittanceInstance.lockFunds(web3.utils.soliditySha3(secret1, secret2),
+        await remittanceInstance.lockFunds(web3.utils.soliditySha3(secret1, secret2, carolAddress),
             {from: accounts[0], value: value});
         const carolTxObj = await remittanceInstance.claimFunds(
             web3.utils.stringToHex(secret1),

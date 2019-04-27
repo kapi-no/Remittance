@@ -25,7 +25,7 @@ contract Remittance is Pausable {
     function claimFunds(bytes memory firstSecret, bytes memory secondSecret) public
         whenNotPaused returns (bool success) {
 
-        bytes32 password = keccak256(abi.encodePacked(firstSecret, secondSecret));
+        bytes32 password = keccak256(abi.encodePacked(firstSecret, secondSecret, msg.sender));
         uint senderBalance = balances[password];
 
         require(senderBalance > 0);
