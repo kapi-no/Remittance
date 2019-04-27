@@ -6,8 +6,8 @@ import '../node_modules/openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
 contract Remittance is Pausable {
     using SafeMath for uint;
 
-    event LogFundLock(address indexed _funder, bytes32 indexed _password, uint _value);
-    event LogFundClaim(address indexed _recipient, bytes32 indexed _password);
+    event LogFundLock(address indexed sender, uint indexed amount, bytes32 indexed password);
+    event LogFundClaim(address indexed sender, bytes indexed firstSecret, bytes indexed secondSecret);
 
     mapping (bytes32 => uint) public balances;
 
@@ -17,7 +17,7 @@ contract Remittance is Pausable {
 
         balances[password] = balances[password].add(msg.value);
 
-        emit LogFundLock(msg.sender, password, msg.value);
+        emit LogFundLock(msg.sender, msg.value, password);
 
         return true;
     }
@@ -30,7 +30,7 @@ contract Remittance is Pausable {
 
         require(senderBalance > 0);
 
-        emit LogFundClaim(msg.sender, password);
+        emit LogFundClaim(msg.sender, firstSecret, secondSecret);
 
         balances[password] = 0;
         msg.sender.transfer(senderBalance);
