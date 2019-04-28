@@ -2,8 +2,9 @@ pragma solidity 0.5.7;
 
 import '../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol';
 import '../node_modules/openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
+import '../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract Remittance is Pausable {
+contract Remittance is Pausable, Ownable {
     using SafeMath for uint;
 
     event LogFundLock(address indexed sender, uint amount, bytes32 indexed accessHash);
@@ -46,6 +47,13 @@ contract Remittance is Pausable {
         msg.sender.transfer(senderBalance);
 
         return true;
+    }
+
+    function kill() public onlyOwner {
+        // Casting vanilla address type to payable address type.
+        address payable owner = address(uint160(address(owner())));
+
+        selfdestruct(owner);
     }
 
 }

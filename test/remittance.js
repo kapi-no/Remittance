@@ -16,6 +16,13 @@ contract('Remittance', (accounts) => {
         carolAddress = accounts[1];
     });
 
+    it('should kill the contract', async () => {
+        await remittanceInstance.kill({from: accounts[0]});
+
+        await truffleAssert.fails(
+            remittanceInstance.balances.call(web3.utils.soliditySha3("string1")));
+    });
+
     it('should compute the same hash at the client side and inside solidity', async () => {
         const secret = "string1";
         const latestBlock = await web3.eth.getBlock("latest");
