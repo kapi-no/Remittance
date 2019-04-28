@@ -16,6 +16,16 @@ contract('Remittance', (accounts) => {
         carolAddress = accounts[1];
     });
 
+    it('should compute the same hash at the client side and inside solidity', async () => {
+        const secret = "string1";
+        const accessHash = web3.utils.soliditySha3(secret, accounts[0]);
+
+        const solAccessHash = await remittanceInstance.computeAccessHash(
+            web3.utils.stringToHex(secret), accounts[0]);
+
+        assert.strictEqual(solAccessHash, accessHash, "Hashes do not match");
+    });
+
     it('should lock the funds in the contract', async () => {
         const value = 10;
         const accessHash = web3.utils.soliditySha3("string1");
