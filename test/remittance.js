@@ -88,6 +88,21 @@ contract('Remittance', (accounts) => {
                             "Carol balance is not correct");
     });
 
+    it('should not lock fund with already used access hash', async () => {
+        const value = 10;
+        const secret = "string1";
+        const latestBlock = await web3.eth.getBlock("latest");
+
+        await remittanceInstance.lockFunds(web3.utils.soliditySha3(secret, latestBlock.hash, carolAddress),
+            {from: accounts[0], value: value});
+        await remittanceInstance.claimFunds(web3.utils.stringToHex(secret), latestBlock.hash,
+            {from: carolAddress});
+
+        await truffleAssert.fails(remittanceInstance.lockFunds(
+            web3.utils.soliditySha3(secret, latestBlock.hash, carolAddress),
+            {from: accounts[0], value: value}));
+    });
+
     it('claim without locking', async () => {
         const secret = "string1";
         const latestBlock = await web3.eth.getBlock("latest");

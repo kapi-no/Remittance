@@ -10,6 +10,7 @@ contract Remittance is Pausable {
     event LogFundClaim(address indexed sender, bytes indexed secret);
 
     mapping (bytes32 => uint) public balances; // remittanceAccessHash => funds
+    mapping (bytes32 => bool) public usedHashes; // remittanceAccessHash => usedHash flag
 
     function computeAccessHash(bytes memory secret, bytes32 saltValue, address remittanceAddress)
         public pure returns (bytes32 accessHash) {
@@ -20,6 +21,7 @@ contract Remittance is Pausable {
 
     function lockFunds(bytes32 accessHash) public payable whenNotPaused returns (bool success) {
         require(accessHash != bytes32(0));
+        require(!usedHashes[accessHash]);
         require(msg.value > 0);
 
         balances[accessHash] = balances[accessHash].add(msg.value);
@@ -40,6 +42,7 @@ contract Remittance is Pausable {
         emit LogFundClaim(msg.sender, secret);
 
         balances[accessHash] = 0;
+        usedHashes[accessHash] = true;
         msg.sender.transfer(senderBalance);
 
         return true;
