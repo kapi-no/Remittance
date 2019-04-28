@@ -6,33 +6,33 @@ import '../node_modules/openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
 contract Remittance is Pausable {
     using SafeMath for uint;
 
-    event LogFundLock(address indexed sender, uint indexed amount, bytes32 indexed password);
-    event LogFundClaim(address indexed sender, bytes indexed firstSecret, bytes indexed secondSecret);
+    event LogFundLock(address indexed sender, uint amount, bytes32 indexed accessHash);
+    event LogFundClaim(address indexed sender, bytes indexed secret);
 
-    mapping (bytes32 => uint) public balances;
+    mapping (bytes32 => uint) public balances; // remittanceAccessHash => funds
 
-    function lockFunds(bytes32 password) public payable whenNotPaused returns (bool success) {
-        require(password != bytes32(0));
+    function lockFunds(bytes32 accessHash) public payable whenNotPaused returns (bool success) {
+        require(accessHash != bytes32(0));
         require(msg.value > 0);
 
-        balances[password] = balances[password].add(msg.value);
+        balances[accessHash] = balances[accessHash].add(msg.value);
 
-        emit LogFundLock(msg.sender, msg.value, password);
+        emit LogFundLock(msg.sender, msg.value, accessHash);
 
         return true;
     }
 
-    function claimFunds(bytes memory firstSecret, bytes memory secondSecret) public
+    function claimFunds(bytes memory secret) public
         whenNotPaused returns (bool success) {
 
-        bytes32 password = keccak256(abi.encodePacked(firstSecret, secondSecret, msg.sender));
-        uint senderBalance = balances[password];
+        bytes32 accessHash = keccak256(abi.encodePacked(secret, msg.sender));
+        uint senderBalance = balances[accessHash];
 
         require(senderBalance > 0);
 
-        emit LogFundClaim(msg.sender, firstSecret, secondSecret);
+        emit LogFundClaim(msg.sender, secret);
 
-        balances[password] = 0;
+        balances[accessHash] = 0;
         msg.sender.transfer(senderBalance);
 
         return true;

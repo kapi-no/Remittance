@@ -18,54 +18,52 @@ contract('Remittance', (accounts) => {
 
     it('should lock the funds in the contract', async () => {
         const value = 10;
-        const password = web3.utils.soliditySha3("string1", "string2");
+        const accessHash = web3.utils.soliditySha3("string1");
 
-        await remittanceInstance.lockFunds(password, {from: accounts[0], value: value});
+        await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
 
-        const lockedValue = await remittanceInstance.balances.call(password);
+        const lockedValue = await remittanceInstance.balances.call(accessHash);
         assert.strictEqual(lockedValue.toString(), value.toString(), "Locked value is not correct");
     });
 
-    it('should lock even more funds in the contract with the same password', async () => {
+    it('should lock even more funds in the contract with the same accessHash', async () => {
         const value = 10;
-        const password = web3.utils.soliditySha3("string1", "string2");
+        const accessHash = web3.utils.soliditySha3("string1");
 
-        await remittanceInstance.lockFunds(password, {from: accounts[0], value: value});
-        await remittanceInstance.lockFunds(password, {from: accounts[0], value: value});
+        await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
+        await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
 
-        const lockedValue = await remittanceInstance.balances.call(password);
+        const lockedValue = await remittanceInstance.balances.call(accessHash);
         assert.strictEqual(lockedValue.toString(), (value * 2).toString(), "Locked value is not correct");
     });
 
     it('should lock two different funds in the contract', async () => {
         const value1 = 10;
         const value2 = 11;
-        const password1 = web3.utils.soliditySha3("string1", "string2");
-        const password2 = web3.utils.soliditySha3("string2", "string1");
+        const accessHash1 = web3.utils.soliditySha3("string1");
+        const accessHash2 = web3.utils.soliditySha3("string2");
 
-        await remittanceInstance.lockFunds(password1, {from: accounts[0], value: value1});
-        await remittanceInstance.lockFunds(password2, {from: accounts[0], value: value2});
+        await remittanceInstance.lockFunds(accessHash1, {from: accounts[0], value: value1});
+        await remittanceInstance.lockFunds(accessHash2, {from: accounts[0], value: value2});
 
-        const lockedValue1 = await remittanceInstance.balances.call(password1);
+        const lockedValue1 = await remittanceInstance.balances.call(accessHash1);
         assert.strictEqual(lockedValue1.toString(), value1.toString(), "Locked value is not correct");
 
-        const lockedValue2 = await remittanceInstance.balances.call(password2);
+        const lockedValue2 = await remittanceInstance.balances.call(accessHash2);
         assert.strictEqual(lockedValue2.toString(), value2.toString(), "Locked value is not correct");
     });
 
     it('claim the locked funds in the contract', async () => {
         const gasPrice = 21;
         const value = 10;
-        const secret1 = "string1";
-        const secret2 = "string2";
+        const secret = "string1";
 
         const carolPreBalance = await web3.eth.getBalance(carolAddress);
 
-        await remittanceInstance.lockFunds(web3.utils.soliditySha3(secret1, secret2, carolAddress),
+        await remittanceInstance.lockFunds(web3.utils.soliditySha3(secret, carolAddress),
             {from: accounts[0], value: value});
         const carolTxObj = await remittanceInstance.claimFunds(
-            web3.utils.stringToHex(secret1),
-            web3.utils.stringToHex(secret2),
+            web3.utils.stringToHex(secret),
             {from: carolAddress, gasPrice: gasPrice});
 
         const carolBalanceChange = new BN(value - carolTxObj.receipt.gasUsed * gasPrice);
@@ -78,12 +76,10 @@ contract('Remittance', (accounts) => {
     });
 
     it('claim without locking', async () => {
-        const secret1 = "string1";
-        const secret2 = "string2";
+        const secret = "string1";
 
         await truffleAssert.fails(remittanceInstance.claimFunds(
-            web3.utils.stringToHex(secret1),
-            web3.utils.stringToHex(secret2),
+            web3.utils.stringToHex(secret),
             {from: carolAddress}));
     });
 
