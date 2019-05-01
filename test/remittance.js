@@ -21,7 +21,7 @@ contract('Remittance', (accounts) => {
         await remittanceInstance.kill({from: accounts[0]});
 
         await truffleAssert.fails(
-            remittanceInstance.balances(Sha3("string1")));
+            remittanceInstance.lockedFunds(Sha3("string1")));
     });
 
     it('should compute the same hash at the client side and inside solidity', async () => {
@@ -41,7 +41,7 @@ contract('Remittance', (accounts) => {
 
         await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
 
-        const lockedValue = await remittanceInstance.balances(accessHash);
+        const lockedValue = (await remittanceInstance.lockedFunds(accessHash))[0];
         assert.strictEqual(lockedValue.toString(), value.toString(), "Locked value is not correct");
     });
 
@@ -55,10 +55,10 @@ contract('Remittance', (accounts) => {
         await remittanceInstance.lockFunds(accessHash1, {from: accounts[0], value: value1});
         await remittanceInstance.lockFunds(accessHash2, {from: accounts[0], value: value2});
 
-        const lockedValue1 = await remittanceInstance.balances(accessHash1);
+        const lockedValue1 = (await remittanceInstance.lockedFunds(accessHash1))[0];
         assert.strictEqual(lockedValue1.toString(), value1.toString(), "Locked value is not correct");
 
-        const lockedValue2 = await remittanceInstance.balances(accessHash2);
+        const lockedValue2 = (await remittanceInstance.lockedFunds(accessHash2))[0];
         assert.strictEqual(lockedValue2.toString(), value2.toString(), "Locked value is not correct");
     });
 
