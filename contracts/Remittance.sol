@@ -8,7 +8,7 @@ contract Remittance is Pausable, Ownable {
     using SafeMath for uint;
 
     event LogFundLock(address indexed sender, uint amount, bytes32 indexed accessHash);
-    event LogFundClaim(address indexed sender, bytes indexed secret);
+    event LogFundClaim(address indexed sender, bytes32 indexed accessHash);
 
     mapping (bytes32 => uint) public balances; // remittanceAccessHash => funds
     mapping (bytes32 => bool) public usedHashes; // remittanceAccessHash => usedHash flag
@@ -40,7 +40,7 @@ contract Remittance is Pausable, Ownable {
 
         require(senderBalance > 0);
 
-        emit LogFundClaim(msg.sender, secret);
+        emit LogFundClaim(msg.sender, accessHash);
 
         balances[accessHash] = 0;
         usedHashes[accessHash] = true;
