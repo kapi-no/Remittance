@@ -10,9 +10,9 @@ contract Remittance is Pausable, Ownable {
     mapping (bytes32 => uint) public balances; // remittanceAccessHash => funds
     mapping (bytes32 => bool) public usedHashes; // remittanceAccessHash => usedHash flag
 
-    function computeAccessHash(bytes memory secret, bytes32 saltValue, address remittanceAddress)
+    function computeAccessHash(bytes32 secret, address remittanceAddress)
         public pure returns (bytes32 accessHash) {
-        accessHash = keccak256(abi.encodePacked(secret, saltValue, remittanceAddress));
+        accessHash = keccak256(abi.encodePacked(secret, remittanceAddress));
 
         return accessHash;
     }
@@ -30,10 +30,10 @@ contract Remittance is Pausable, Ownable {
         return true;
     }
 
-    function claimFunds(bytes memory secret, bytes32 saltValue) public
+    function claimFunds(bytes32 secret) public
         whenNotPaused returns (bool success) {
 
-        bytes32 accessHash = computeAccessHash(secret, saltValue, msg.sender);
+        bytes32 accessHash = computeAccessHash(secret, msg.sender);
         uint senderBalance = balances[accessHash];
 
         require(senderBalance > 0);
