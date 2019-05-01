@@ -44,17 +44,6 @@ contract('Remittance', (accounts) => {
         assert.strictEqual(lockedValue.toString(), value.toString(), "Locked value is not correct");
     });
 
-    it('should lock even more funds in the contract with the same accessHash', async () => {
-        const value = 10;
-        const accessHash = web3.utils.soliditySha3("string1");
-
-        await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
-        await remittanceInstance.lockFunds(accessHash, {from: accounts[0], value: value});
-
-        const lockedValue = await remittanceInstance.balances.call(accessHash);
-        assert.strictEqual(lockedValue.toString(), (value * 2).toString(), "Locked value is not correct");
-    });
-
     it('should lock two different funds in the contract', async () => {
         const value1 = 10;
         const value2 = 11;

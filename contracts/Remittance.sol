@@ -1,12 +1,9 @@
 pragma solidity 0.5.7;
 
-import '../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol';
 import '../node_modules/openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
 import '../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Remittance is Pausable, Ownable {
-    using SafeMath for uint;
-
     event LogFundLock(address indexed sender, uint amount, bytes32 indexed accessHash);
     event LogFundClaim(address indexed sender, bytes32 indexed accessHash);
 
@@ -25,7 +22,8 @@ contract Remittance is Pausable, Ownable {
         require(!usedHashes[accessHash]);
         require(msg.value > 0);
 
-        balances[accessHash] = balances[accessHash].add(msg.value);
+        balances[accessHash] = msg.value;
+        usedHashes[accessHash] = true;
 
         emit LogFundLock(msg.sender, msg.value, accessHash);
 
@@ -43,7 +41,6 @@ contract Remittance is Pausable, Ownable {
         emit LogFundClaim(msg.sender, accessHash);
 
         balances[accessHash] = 0;
-        usedHashes[accessHash] = true;
         msg.sender.transfer(senderBalance);
 
         return true;
