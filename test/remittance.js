@@ -1,14 +1,13 @@
 const truffleAssert = require('truffle-assertions');
+const addEvmFunctions = require("./utils/evmFunctions.js");
 
 const Remittance = artifacts.require('Remittance');
 
 const { BN, soliditySha3 } = web3.utils;
 
-function sleep(s) {
-    return new Promise(resolve => setTimeout(resolve, 1000*s));
-}
-
 contract('Remittance', (accounts) => {
+
+    addEvmFunctions(web3);
 
     let remittanceInstance;
 
@@ -191,6 +190,7 @@ contract('Remittance', (accounts) => {
         const secret = soliditySha3("password", latestBlock.hash);
         const accessHash = await remittanceInstance.computeAccessHash(secret, carolAddress);
         const lockPeriod = 3; // 3 seconds
+        const lockPeriodInMs = lockPeriod * 1000;
         const value = 10;
 
         await remittanceInstance.lockFunds(accessHash, lockPeriod, {from: accounts[0], value: value});
@@ -199,7 +199,7 @@ contract('Remittance', (accounts) => {
         assert.strictEqual(lockedFunds[0].toString(), value.toString(), "Locked value is not correct");
         assert.strictEqual(lockedFunds[2].toString(), accounts[0].toString(), "Locked fund owner is not correct");
 
-        await sleep(lockPeriod);
+        await web3.evm.increaseTime(lockPeriodInMs);
 
         await remittanceInstance.cancelFunds(accessHash, {from: accounts[0]});
 
