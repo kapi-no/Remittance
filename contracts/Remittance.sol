@@ -49,34 +49,39 @@ contract Remittance is Pausable, Ownable {
 
     function lockFunds(bytes32 accessHash, uint lockPeriod) public payable
     whenNotPaused returns (bool success) {
+        LockedFunds storage funds = lockedFunds[accessHash];
+
         require(accessHash != bytes32(0));
-        require(lockedFunds[accessHash].owner == address(0));
+        require(funds.owner == address(0));
         require(msg.value > 0);
         require(lockPeriod <= maxLockPeriod);
 
-        lockedFunds[accessHash].balance = msg.value;
-        lockedFunds[accessHash].deadline = now.add(lockPeriod);
-        lockedFunds[accessHash].owner = msg.sender;
+        uint deadline = now.add(lockPeriod);
 
-        emit LogFundLocked(msg.sender, msg.value, accessHash,
-            lockedFunds[accessHash].deadline);
+        funds.balance = msg.value;
+        funds.deadline = deadline;
+        funds.owner = msg.sender;
+
+        emit LogFundLocked(msg.sender, msg.value, accessHash, deadline);
 
         return true;
     }
 
     function cancelFunds(bytes32 accessHash) public
         whenNotPaused returns (bool success) {
-        require(lockedFunds[accessHash].owner == msg.sender);
-        require(lockedFunds[accessHash].deadline <= now);
+        LockedFunds storage funds = lockedFunds[accessHash];
 
-        uint senderBalance = lockedFunds[accessHash].balance;
+        require(funds.owner == msg.sender);
+        require(funds.deadline <= now);
+
+        uint senderBalance = funds.balance;
 
         require(senderBalance > 0);
 
         emit LogFundCanceled(msg.sender, accessHash);
 
-        lockedFunds[accessHash].balance = 0;
-        lockedFunds[accessHash].deadline = 0;
+        funds.balance = 0;
+        funds.deadline = 0;
         msg.sender.transfer(senderBalance);
 
         return true;
@@ -86,14 +91,16 @@ contract Remittance is Pausable, Ownable {
         whenNotPaused returns (bool success) {
 
         bytes32 accessHash = computeAccessHashInternal(secret, msg.sender);
-        uint senderBalance = lockedFunds[accessHash].balance;
+        LockedFunds storage funds = lockedFunds[accessHash];
+
+        uint senderBalance = funds.balance;
 
         require(senderBalance > 0);
 
         emit LogFundClaimed(msg.sender, accessHash);
 
-        lockedFunds[accessHash].balance = 0;
-        lockedFunds[accessHash].deadline = 0;
+        funds.balance = 0;
+        funds.deadline = 0;
         msg.sender.transfer(senderBalance);
 
         return true;
