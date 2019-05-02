@@ -29,14 +29,22 @@ contract Remittance is Pausable, Ownable {
         emit LogMaxLockPeriodChanged(msg.sender, _maxLockPeriod);
     }
 
-    function computeAccessHash(bytes32 secret, address remittanceAddress)
-        public view returns (bytes32 accessHash) {
+    function computeAccessHashInternal(bytes32 secret, address remittanceAddress)
+        private view returns (bytes32 accessHash) {
         require(secret != bytes32(0),
             "secret parameter cannot be equal to 0");
         require(remittanceAddress != address(0),
             "remittanceAddress parameter cannot be equal to 0");
 
         accessHash = keccak256(abi.encodePacked(secret, address(this), remittanceAddress));
+    }
+
+    function computeAccessHash(bytes32 secret, address remittanceAddress)
+        public view returns (bytes32 accessHash) {
+        accessHash = computeAccessHashInternal(secret, remittanceAddress);
+
+        require(lockedFunds[accessHash].owner == address(0),
+            "accessHash has already been used");
     }
 
     function lockFunds(bytes32 accessHash, uint lockPeriod) public payable
@@ -77,7 +85,7 @@ contract Remittance is Pausable, Ownable {
     function claimFunds(bytes32 secret) public
         whenNotPaused returns (bool success) {
 
-        bytes32 accessHash = computeAccessHash(secret, msg.sender);
+        bytes32 accessHash = computeAccessHashInternal(secret, msg.sender);
         uint senderBalance = lockedFunds[accessHash].balance;
 
         require(senderBalance > 0);
