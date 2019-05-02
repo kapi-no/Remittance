@@ -4,6 +4,10 @@ const Remittance = artifacts.require('Remittance');
 
 const { BN, soliditySha3 } = web3.utils;
 
+function sleep(s) {
+    return new Promise(resolve => setTimeout(resolve, 1000*s));
+}
+
 contract('Remittance', (accounts) => {
 
     let remittanceInstance;
@@ -11,7 +15,9 @@ contract('Remittance', (accounts) => {
     let carolAddress;
 
     beforeEach('setup contract for each test', async function () {
-        remittanceInstance = await Remittance.new({from: accounts[0]});
+        const defaultMaxLockPeriod = 100*24*3600; // 100 days.
+
+        remittanceInstance = await Remittance.new(defaultMaxLockPeriod, {from: accounts[0]});
 
         carolAddress = accounts[1];
     });
@@ -22,6 +28,18 @@ contract('Remittance', (accounts) => {
         const contractCode = await web3.eth.getCode(remittanceInstance.address);
 
         assert.strictEqual(contractCode, "0x", "Contract code should be empty");
+    });
+
+    it('should change the maximum period in which funds are locked', async () => {
+        const newMaxLockPeriod = 9*24*3600; // 9 days.
+        const owner = await remittanceInstance.owner();
+
+        await remittanceInstance.changeMaxLockPeriod(newMaxLockPeriod, {from: owner})
+
+        const maxLockPeriod = await remittanceInstance.maxLockPeriod();
+
+        assert.strictEqual(maxLockPeriod.toString(), newMaxLockPeriod.toString(),
+            "Lock periods do not match");
     });
 
     it('should compute the same hash at the client side and inside solidity', async () => {
@@ -156,7 +174,7 @@ contract('Remittance', (accounts) => {
         const latestBlock = await web3.eth.getBlock("latest");
         const secret = soliditySha3("password", latestBlock.hash);
         const accessHash = await remittanceInstance.computeAccessHash(secret, carolAddress);
-        const lockPeriod = 5;
+        const lockPeriod = 5*24*3600; // 5 days
         const value = 10;
 
         await remittanceInstance.lockFunds(accessHash, lockPeriod, {from: accounts[0], value: value});
@@ -168,12 +186,33 @@ contract('Remittance', (accounts) => {
         await truffleAssert.fails(remittanceInstance.cancelFunds(accessHash, {from: accounts[0]}));
     });
 
+    it('should cancel the locking operation after the lock period expires', async () => {
+        const latestBlock = await web3.eth.getBlock("latest");
+        const secret = soliditySha3("password", latestBlock.hash);
+        const accessHash = await remittanceInstance.computeAccessHash(secret, carolAddress);
+        const lockPeriod = 3; // 3 seconds
+        const value = 10;
+
+        await remittanceInstance.lockFunds(accessHash, lockPeriod, {from: accounts[0], value: value});
+
+        let lockedFunds = await remittanceInstance.lockedFunds(accessHash);
+        assert.strictEqual(lockedFunds[0].toString(), value.toString(), "Locked value is not correct");
+        assert.strictEqual(lockedFunds[2].toString(), accounts[0].toString(), "Locked fund owner is not correct");
+
+        await sleep(lockPeriod);
+
+        await remittanceInstance.cancelFunds(accessHash, {from: accounts[0]});
+
+        lockedFunds = await remittanceInstance.lockedFunds(accessHash);
+        assert.strictEqual(lockedFunds[0].toString(), "0", "Locked value is not correct");
+        assert.strictEqual(lockedFunds[2].toString(), accounts[0].toString(), "Locked fund owner is not correct");
+    });
 
     it('should be able to claim the locked funds before the lock period expires', async () => {
         const latestBlock = await web3.eth.getBlock("latest");
         const secret = soliditySha3("password", latestBlock.hash);
         const accessHash = await remittanceInstance.computeAccessHash(secret, carolAddress);
-        const lockPeriod = 5;
+        const lockPeriod = 5*24*3600; // 5 days
         const value = 10;
 
         await remittanceInstance.lockFunds(accessHash, lockPeriod, {from: accounts[0], value: value});
@@ -193,7 +232,7 @@ contract('Remittance', (accounts) => {
         const latestBlock = await web3.eth.getBlock("latest");
         const secret = soliditySha3("password", latestBlock.hash);
         const accessHash = await remittanceInstance.computeAccessHash(secret, carolAddress);
-        const lockPeriod = 5;
+        const lockPeriod = 5*24*3600; // 5 days
         const value = 10;
 
         await remittanceInstance.lockFunds(accessHash, lockPeriod, {from: accounts[0], value: value});

@@ -4,20 +4,27 @@ import '../node_modules/openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
 import '../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Remittance is Pausable, Ownable {
-    event LogFundLock(address indexed sender, uint amount,
+    event LogFundLocked(address indexed sender, uint amount,
         bytes32 indexed accessHash, uint deadline);
-    event LogFundCancel(address indexed sender, bytes32 indexed accessHash);
-    event LogFundClaim(address indexed sender, bytes32 indexed accessHash);
+    event LogFundCanceled(address indexed sender, bytes32 indexed accessHash);
+    event LogFundClaimed(address indexed sender, bytes32 indexed accessHash);
+
+    event LogMaxLockPeriodChanged(address indexed sender, uint maxLockPeriod);
 
     struct LockedFunds {
         uint balance;
         uint deadline;
         address owner;
-        bool used;
     }
 
-    uint8 constant maxLockPeriod = 100; // in days
+    uint public maxLockPeriod; // in seconds
     mapping (bytes32 => LockedFunds) public lockedFunds; // remittanceAccessHash => (balance, usedHash flag)
+
+    constructor(uint _maxLockPeriod) public {
+        maxLockPeriod = _maxLockPeriod;
+
+        emit LogMaxLockPeriodChanged(msg.sender, _maxLockPeriod);
+    }
 
     function computeAccessHash(bytes32 secret, address remittanceAddress)
         public view returns (bytes32 accessHash) {
@@ -29,19 +36,18 @@ contract Remittance is Pausable, Ownable {
         accessHash = keccak256(abi.encodePacked(secret, address(this), remittanceAddress));
     }
 
-    function lockFunds(bytes32 accessHash, uint8 lockPeriod) public payable
+    function lockFunds(bytes32 accessHash, uint lockPeriod) public payable
     whenNotPaused returns (bool success) {
         require(accessHash != bytes32(0));
-        require(!lockedFunds[accessHash].used);
+        require(lockedFunds[accessHash].owner == address(0));
         require(msg.value > 0);
         require(lockPeriod <= maxLockPeriod);
 
         lockedFunds[accessHash].balance = msg.value;
-        lockedFunds[accessHash].deadline = now + (lockPeriod * 1 days);
+        lockedFunds[accessHash].deadline = now + lockPeriod;
         lockedFunds[accessHash].owner = msg.sender;
-        lockedFunds[accessHash].used = true;
 
-        emit LogFundLock(msg.sender, msg.value, accessHash,
+        emit LogFundLocked(msg.sender, msg.value, accessHash,
             lockedFunds[accessHash].deadline);
 
         return true;
@@ -56,9 +62,10 @@ contract Remittance is Pausable, Ownable {
 
         require(senderBalance > 0);
 
-        emit LogFundCancel(msg.sender, accessHash);
+        emit LogFundCanceled(msg.sender, accessHash);
 
         lockedFunds[accessHash].balance = 0;
+        lockedFunds[accessHash].deadline = 0;
         msg.sender.transfer(senderBalance);
 
         return true;
@@ -72,12 +79,19 @@ contract Remittance is Pausable, Ownable {
 
         require(senderBalance > 0);
 
-        emit LogFundClaim(msg.sender, accessHash);
+        emit LogFundClaimed(msg.sender, accessHash);
 
         lockedFunds[accessHash].balance = 0;
+        lockedFunds[accessHash].deadline = 0;
         msg.sender.transfer(senderBalance);
 
         return true;
+    }
+
+    function changeMaxLockPeriod(uint newMaxLockPeriod) public onlyOwner {
+        maxLockPeriod = newMaxLockPeriod;
+
+        emit LogMaxLockPeriodChanged(msg.sender, newMaxLockPeriod);
     }
 
     function kill() public onlyOwner {
