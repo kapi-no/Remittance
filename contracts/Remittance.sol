@@ -20,10 +20,13 @@ contract Remittance is Pausable, Ownable {
     mapping (bytes32 => LockedFunds) public lockedFunds; // remittanceAccessHash => (balance, usedHash flag)
 
     function computeAccessHash(bytes32 secret, address remittanceAddress)
-        public pure returns (bytes32 accessHash) {
-        accessHash = keccak256(abi.encodePacked(secret, remittanceAddress));
+        public view returns (bytes32 accessHash) {
+        require(secret != bytes32(0),
+            "secret parameter cannot be equal to 0");
+        require(remittanceAddress != address(0),
+            "remittanceAddress parameter cannot be equal to 0");
 
-        return accessHash;
+        accessHash = keccak256(abi.encodePacked(secret, address(this), remittanceAddress));
     }
 
     function lockFunds(bytes32 accessHash, uint8 lockPeriod) public payable

@@ -27,11 +27,32 @@ contract('Remittance', (accounts) => {
     it('should compute the same hash at the client side and inside solidity', async () => {
         const latestBlock = await web3.eth.getBlock("latest");
         const secret = soliditySha3("password", latestBlock.hash);
-        const accessHash = soliditySha3(secret, accounts[0]);
 
+        const accessHash = soliditySha3(secret, remittanceInstance.address, accounts[0]);
         const solAccessHash = await remittanceInstance.computeAccessHash(secret, accounts[0]);
 
         assert.strictEqual(solAccessHash, accessHash, "Hashes do not match");
+    });
+
+    it('should not compute the hash with 0 hash', async () => {
+        const zeroSecret = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+        const accessHash = soliditySha3(zeroSecret, remittanceInstance.address, carolAddress);
+        const solAccessHash = await remittanceInstance.computeAccessHash(zeroSecret, carolAddress);
+
+        assert.ok(solAccessHash != accessHash, "solAccessHash should not be calculated");
+    });
+
+    it('should not compute the hash with 0 address', async () => {
+        const zeroAddress = "0x0000000000000000000000000000000000000000";
+
+        const latestBlock = await web3.eth.getBlock("latest");
+        const secret = soliditySha3("password", latestBlock.hash);
+        const accessHash = soliditySha3(secret, remittanceInstance.address, zeroAddress);
+
+        const solAccessHash = await remittanceInstance.computeAccessHash(secret, zeroAddress);
+
+        assert.ok(solAccessHash != accessHash, "solAccessHash should not be calculated");
     });
 
     it('should lock the funds in the contract', async () => {
